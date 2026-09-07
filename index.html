@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="uz" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vocabulary World | CEFR A1-C1 So'z Boyligi Platformasi</title>
+  <meta name="description" content="Talabalar uchun CEFR darajalari (A1, A2, B1, B2, C1) bo'yicha interaktiv so'z boyligini oshirish, testlar va Placement Test platformasi.">
+  
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS CDN with configuration -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0fdfa',
+              500: '#14b8a6',
+              600: '#0d9488',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Canvas Confetti for celebrations -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col antialiased selection:bg-sky-500 selection:text-white">
+
+  <!-- TOP NAVIGATION BAR -->
+  <header class="sticky top-0 z-40 glass-panel border-b border-slate-800/80 bg-slate-900/80">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <a href="#" onclick="window.showHomeView(); return false;" class="flex items-center gap-3 group shrink-0">
+        <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 via-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition duration-200">
+          <i class="fa-solid fa-earth-americas text-white text-2xl"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="text-xl font-extrabold tracking-tight bg-gradient-to-r from-white via-sky-200 to-indigo-300 bg-clip-text text-transparent">Vocabulary World</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-sky-500/20 text-sky-400 border border-sky-500/30 uppercase tracking-widest">CEFR</span>
+          </div>
+          <p class="text-xs text-slate-400 hidden sm:block">Ingliz tili so'z boyligi va testlar</p>
+        </div>
+      </a>
+
+      <!-- Search Input Bar -->
+      <div class="hidden md:flex flex-1 max-w-md mx-4">
+        <div class="relative w-full">
+          <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+          <input 
+            type="text" 
+            id="global-search-input"
+            placeholder="So'zlarni inglizcha yoki o'zbekcha qidiring..."
+            class="w-full bg-slate-800/80 border border-slate-700/80 rounded-xl pl-10 pr-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 transition"
+          >
+        </div>
+      </div>
+
+      <!-- Right Navigation Actions & Stats -->
+      <div class="flex items-center gap-2.5 sm:gap-3 shrink-0">
+        <!-- Placement Test Button -->
+        <button 
+          onclick="window.startPlacementTest()"
+          class="px-3.5 py-2 sm:px-4 sm:py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-orange-500/20 transition active:scale-95"
+        >
+          <i class="fa-solid fa-bullseye"></i>
+          <span class="hidden sm:inline">Placement Test</span>
+          <span class="sm:hidden">Test</span>
+        </button>
+
+        <!-- Words Learned Badge Counter -->
+        <div class="flex items-center gap-2 bg-slate-800/90 border border-slate-700/80 px-3 py-2 rounded-xl" title="Yodlangan so'zlar soni">
+          <i class="fa-solid fa-award text-emerald-400 text-sm"></i>
+          <span id="learned-counter-badge" class="text-xs font-bold text-slate-200">0 so'z</span>
+        </div>
+
+        <!-- Sound Effects Toggle -->
+        <button 
+          id="sound-toggle-btn"
+          onclick="window.toggleSoundEffects()"
+          class="w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 text-slate-300 hover:text-white flex items-center justify-center transition"
+          title="Ovoz effektlarini yoqish/o'chirish"
+        >
+          <i class="fa-solid fa-volume-high text-sm"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mobile Search Bar (Visible on mobile) -->
+    <div class="md:hidden px-4 pb-3">
+      <div class="relative w-full">
+        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+        <input 
+          type="text" 
+          id="mobile-search-input"
+          placeholder="So'zlarni qidiring..."
+          class="w-full bg-slate-800/90 border border-slate-700 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-sky-500"
+        >
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- VIEW 1: HOME / LEVEL & TOPIC SELECTION VIEW -->
+    <div id="view-home" class="space-y-10">
+      
+      <!-- Hero Banner -->
+      <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-indigo-950/60 to-slate-900 border border-slate-800/80 p-8 sm:p-12 shadow-2xl">
+        <div class="absolute -right-10 -bottom-10 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="absolute -left-10 -top-10 w-96 h-96 bg-sky-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+        <div class="relative z-10 max-w-3xl space-y-4">
+          <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-400 text-xs font-semibold">
+            <i class="fa-solid fa-sparkles"></i>
+            <span>Interaktiv CEFR Lug'at O'rganish Tizimi</span>
+          </div>
+
+          <h1 class="text-3xl sm:text-5xl font-black text-white tracking-tight leading-tight">
+            Ingliz tili so'z boyligingizni yangi bosqichga olib chiqing!
+          </h1>
+
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+            O'zingizga mos <strong>CEFR darajasini (A1, A2, B1, B2, C1)</strong> tanlang yoki darajangizni aniq bilmasangiz, 
+            <strong>Placement Test</strong> orqali 10 daqiqada bilimingizni sinab ko'ring. Har bir so'z talaffuzi, ta'rifi va 3 tadan real misoli bilan berilgan!
+          </p>
+
+          <div class="flex flex-wrap items-center gap-3 pt-3">
+            <button 
+              onclick="window.startPlacementTest()"
+              class="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white font-bold text-sm flex items-center gap-2.5 shadow-xl shadow-sky-500/25 transition active:scale-95"
+            >
+              <i class="fa-solid fa-graduation-cap text-base"></i>
+              <span>Darajani Aniqlash Testi (Placement)</span>
+            </button>
+
+            <button 
+              onclick="window.scrollToLevels()"
+              class="px-6 py-3.5 rounded-2xl bg-slate-800/80 hover:bg-slate-700 text-white font-semibold text-sm border border-slate-700 flex items-center gap-2 transition"
+            >
+              <span>Darajalarni ko'rish</span>
+              <i class="fa-solid fa-arrow-down text-xs"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- CEFR Levels Grid -->
+      <div id="levels-section" class="space-y-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5">
+              <i class="fa-solid fa-layer-group text-sky-400"></i>
+              <span>CEFR Darajangizni Tanlang</span>
+            </h2>
+            <p class="text-xs text-slate-400">Har bir darajadagi mavzular va lug'atlar to'plami</p>
+          </div>
+
+          <!-- Quick Level Filter Tabs -->
+          <div class="flex items-center gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-xl" id="level-nav-tabs">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+
+        <!-- Dynamic Level & Topic Cards Container -->
+        <div id="levels-container" class="space-y-12">
+          <!-- Rendered dynamically by JS -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- VIEW 2: TOPIC DETAIL / WORDS STUDY VIEW -->
+    <div id="view-topic" class="hidden space-y-6">
+      
+      <!-- Breadcrumbs & Header -->
+      <div class="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2 text-xs text-slate-400">
+            <button onclick="window.showHomeView()" class="hover:text-white transition flex items-center gap-1">
+              <i class="fa-solid fa-house"></i> Bosh sahifa
+            </button>
+            <span>/</span>
+            <span id="topic-breadcrumb-level" class="text-sky-400 font-semibold">A1</span>
+            <span>/</span>
+            <span id="topic-breadcrumb-title" class="text-slate-200 font-semibold">Family</span>
+          </div>
+
+          <div class="flex items-center gap-3">
+            <h2 id="topic-header-title" class="text-3xl font-extrabold text-white tracking-tight">Family (Oila)</h2>
+            <span id="topic-header-badge" class="px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">A1 Boshlang'ich</span>
+          </div>
+        </div>
+
+        <!-- Mode controls: List View, Flashcard View, Quiz Trigger -->
+        <div class="flex flex-wrap items-center gap-2.5">
+          <div class="bg-slate-900 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
+            <button 
+              id="mode-btn-list" 
+              onclick="window.switchWordViewMode('list')"
+              class="px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-sky-500 text-white shadow"
+            >
+              <i class="fa-solid fa-list-ul"></i> Ro'yxat
+            </button>
+
+            <button 
+              id="mode-btn-flashcard" 
+              onclick="window.switchWordViewMode('flashcard')"
+              class="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-clone"></i> Fleshkarta
+            </button>
+          </div>
+
+          <button 
+            id="start-topic-quiz-btn"
+            onclick="window.startCurrentTopicQuiz()"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-bold text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-emerald-500/20 transition active:scale-95"
+          >
+            <i class="fa-solid fa-circle-question"></i>
+            <span>Bilimni sinash (Quiz)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Words container -->
+      <div id="topic-words-container">
+        <!-- Rendered by WordCardsComponent -->
+      </div>
+    </div>
+
+    <!-- VIEW 3: PLACEMENT TEST VIEW -->
+    <div id="view-placement" class="hidden">
+      <div id="placement-test-container">
+        <!-- Rendered by PlacementTestComponent -->
+      </div>
+    </div>
+
+    <!-- VIEW 4: SEARCH RESULTS VIEW -->
+    <div id="view-search" class="hidden space-y-6">
+      <div class="flex items-center justify-between pb-4 border-b border-slate-800">
+        <div>
+          <h2 class="text-2xl font-bold text-white tracking-tight">Qidiruv natijalari</h2>
+          <p class="text-xs text-slate-400" id="search-query-summary">Qidiruv so'zi: ""</p>
+        </div>
+        <button onclick="window.showHomeView()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition flex items-center gap-2">
+          <i class="fa-solid fa-arrow-left"></i> Ortga qaytish
+        </button>
+      </div>
+
+      <div id="search-results-container" class="space-y-4">
+        <!-- Rendered dynamically -->
+      </div>
+    </div>
+
+  </main>
+
+  <!-- MULTIPLE CHOICE QUIZ MODAL -->
+  <div id="quiz-modal" class="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md">
+    <div class="modal-content-box bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl">
+      <!-- Rendered dynamically by QuizModalComponent -->
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="border-t border-slate-800/80 bg-slate-950/80 mt-16 py-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center gap-2">
+        <span class="font-bold text-slate-400">Vocabulary World</span> &copy; 2026. Barcha huquqlar himoyalangan.
+      </div>
+      <div class="flex items-center gap-4">
+        <span>CEFR A1, A2, B1, B2, C1 Darajalari</span>
+        <span>•</span>
+        <span>Interaktiv Mashg'ulotlar</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- App Entry Point (ES6 Modules) -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
