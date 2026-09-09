@@ -18,6 +18,9 @@ class VocabularyApp {
     this.viewMode = 'list'; // 'list' or 'flashcard'
     this.activeFilterLevel = 'ALL';
     
+    // Theme state (default to light mode as requested)
+    this.currentTheme = localStorage.getItem('vw_theme') || 'light';
+
     // Persistent state
     this.learnedWordIds = this.loadLearnedWords();
     this.soundEnabled = localStorage.getItem('vw_sound_enabled') !== 'false';
@@ -46,11 +49,45 @@ class VocabularyApp {
   }
 
   init() {
+    this.initTheme();
     this.renderLevelTabs();
     this.renderLevelsGrid();
     this.updateStatsUI();
     this.setupEventListeners();
     this.setupGlobalHandlers();
+  }
+
+  /* Theme Management */
+  initTheme() {
+    this.setTheme(this.currentTheme);
+  }
+
+  setTheme(theme) {
+    this.currentTheme = theme;
+    localStorage.setItem('vw_theme', theme);
+    const html = document.documentElement;
+    const icon = document.getElementById('theme-toggle-icon');
+    const btn = document.getElementById('theme-toggle-btn');
+    
+    if (theme === 'dark') {
+      html.classList.add('dark');
+      html.classList.remove('light');
+      if (icon) icon.className = 'fa-solid fa-moon text-sm text-indigo-400';
+      if (btn) btn.title = "Yorug' rejimga o'tish";
+    } else {
+      html.classList.remove('dark');
+      html.classList.add('light');
+      if (icon) icon.className = 'fa-solid fa-sun text-sm text-amber-500';
+      if (btn) btn.title = "To'q rejimga o'tish";
+    }
+
+    this.renderLevelTabs();
+    this.renderLevelsGrid();
+  }
+
+  toggleTheme() {
+    const nextTheme = this.currentTheme === 'dark' ? 'light' : 'dark';
+    this.setTheme(nextTheme);
   }
 
   /* Audio Synthesis (No external sound files required) */
@@ -73,33 +110,35 @@ class VocabularyApp {
       const ctx = this.getAudioContext();
       if (!ctx) return;
 
+      const now = ctx.currentTime;
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
+
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      const now = ctx.currentTime;
       if (isCorrect) {
-        // High, cheerful two-tone chime
+        // High pleasant double-beep
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, now); // D5
-        osc.frequency.setValueAtTime(880.00, now + 0.1); // A5
-        gain.gain.setValueAtTime(0.2, now);
+        osc.frequency.setValueAtTime(523.25, now); // C5
+        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
+        osc.frequency.setValueAtTime(783.99, now + 0.16); // G5
+        gain.gain.setValueAtTime(0.12, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
       } else {
         // Low gentle buzz
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(180, now);
-        osc.frequency.setValueAtTime(130, now + 0.1);
-        gain.gain.setValueAtTime(0.18, now);
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(220, now); // A3
+        osc.frequency.setValueAtTime(196, now + 0.1); // G3
+        gain.gain.setValueAtTime(0.15, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
         osc.start(now);
         osc.stop(now + 0.3);
       }
     } catch (e) {
-      console.warn("Audio chime error:", e);
+      console.warn("Audio synthesis error:", e);
     }
   }
 
@@ -114,18 +153,20 @@ class VocabularyApp {
     if (!btn) return;
     if (this.soundEnabled) {
       btn.innerHTML = '<i class="fa-solid fa-volume-high text-sm"></i>';
-      btn.className = 'w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 text-sky-400 flex items-center justify-center transition';
+      btn.classList.remove('opacity-50');
+      btn.title = "Ovoz effektlari yoqilgan";
     } else {
       btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-sm"></i>';
-      btn.className = 'w-10 h-10 rounded-xl bg-slate-800/90 border border-slate-700/80 text-slate-500 flex items-center justify-center transition';
+      btn.classList.add('opacity-50');
+      btn.title = "Ovoz effektlari o'chirilgan";
     }
   }
 
-  /* Persistence */
+  /* Persistence: Learned Words */
   loadLearnedWords() {
     try {
-      const stored = localStorage.getItem('vw_learned_words');
-      return stored ? JSON.parse(stored) : [];
+      const saved = localStorage.getItem('vw_learned_words');
+      return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
     }
@@ -134,56 +175,61 @@ class VocabularyApp {
   saveLearnedWords() {
     try {
       localStorage.setItem('vw_learned_words', JSON.stringify(this.learnedWordIds));
-    } catch (e) {}
+    } catch (e) {
+      console.error("Local storage error:", e);
+    }
   }
 
-  toggleLearnedWord(id) {
-    if (this.learnedWordIds.includes(id)) {
-      this.learnedWordIds = this.learnedWordIds.filter(item => item !== id);
+  toggleLearnedWord(wordId) {
+    const idx = this.learnedWordIds.indexOf(wordId);
+    if (idx > -1) {
+      this.learnedWordIds.splice(idx, 1);
+      this.supabase.toggleWordLearned(wordId, false);
     } else {
-      this.learnedWordIds.push(id);
-      this.playFeedbackSound(true);
-      if (this.supabase) {
-        this.supabase.recordLearnedWord(id);
-      }
+      this.learnedWordIds.push(wordId);
+      this.supabase.toggleWordLearned(wordId, true);
     }
+
     this.saveLearnedWords();
     this.updateStatsUI();
+    this.renderLevelsGrid();
+
+    // Re-render word cards if in topic view
+    if (this.currentTopic) {
+      this.wordCardsComp.render();
+    }
   }
 
+  /* Persistence: Placement Result */
   loadPlacementResult() {
     try {
-      const stored = localStorage.getItem('vw_placement_result');
-      return stored ? JSON.parse(stored) : null;
+      const saved = localStorage.getItem('vw_placement_result');
+      return saved ? JSON.parse(saved) : null;
     } catch (e) {
       return null;
     }
   }
 
-  savePlacementResult(level, score) {
-    this.placementResult = { level, score, date: new Date().toLocaleDateString('uz-UZ') };
+  savePlacementResult(levelKey, score) {
+    this.placementResult = { levelKey, score, date: new Date().toISOString() };
     try {
       localStorage.setItem('vw_placement_result', JSON.stringify(this.placementResult));
-    } catch (e) {}
-    if (this.supabase) {
-      this.supabase.syncStudentProfile({
-        current_level: level,
-        placement_score: score,
-        placement_completed_at: new Date().toISOString()
-      });
+    } catch (e) {
+      console.error("Local storage error:", e);
     }
     this.updateStatsUI();
   }
 
+  /* Stats UI */
   updateStatsUI() {
-    const counterBadge = document.getElementById('learned-counter-badge');
-    if (counterBadge) {
-      counterBadge.textContent = `${this.learnedWordIds.length} ta yodlandi`;
+    const countBadge = document.getElementById('learned-counter-badge');
+    if (countBadge) {
+      countBadge.textContent = `${this.learnedWordIds.length} so'z`;
     }
     this.updateSoundButtonUI();
   }
 
-  /* UI Navigation & Views */
+  /* Navigation & Views */
   showView(viewName) {
     const views = ['home', 'topic', 'placement', 'search'];
     views.forEach(v => {
@@ -196,9 +242,11 @@ class VocabularyApp {
         }
       }
     });
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  /* Level Filter Tabs */
   renderLevelTabs() {
     const container = document.getElementById('level-nav-tabs');
     if (!container) return;
@@ -217,7 +265,7 @@ class VocabularyApp {
       return `
         <button 
           onclick="window.filterByLevel('${t.key}')"
-          class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${isActive ? 'bg-sky-500 text-white shadow-md' : 'text-slate-400 hover:text-white hover:bg-slate-800'}"
+          class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${isActive ? 'bg-sky-500 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/70 dark:text-slate-400 dark:hover:text-white dark:hover:bg-slate-800'}"
         >
           ${t.label}
         </button>
@@ -239,11 +287,31 @@ class VocabularyApp {
     const filteredKeys = this.activeFilterLevel === 'ALL' ? levelKeys : [this.activeFilterLevel];
 
     const levelGradients = {
-      A1: { header: 'from-emerald-500/20 via-teal-900/10 to-transparent', border: 'border-emerald-500/30', badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40' },
-      A2: { header: 'from-sky-500/20 via-blue-900/10 to-transparent', border: 'border-sky-500/30', badge: 'bg-sky-500/20 text-sky-300 border-sky-500/40' },
-      B1: { header: 'from-amber-500/20 via-orange-900/10 to-transparent', border: 'border-amber-500/30', badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40' },
-      B2: { header: 'from-indigo-500/20 via-purple-900/10 to-transparent', border: 'border-indigo-500/30', badge: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/40' },
-      C1: { header: 'from-rose-500/20 via-pink-900/10 to-transparent', border: 'border-rose-500/30', badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40' }
+      A1: { 
+        bg: 'bg-emerald-50/60 dark:bg-emerald-950/15', 
+        border: 'border-emerald-200/90 dark:border-emerald-500/30', 
+        badge: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/40' 
+      },
+      A2: { 
+        bg: 'bg-sky-50/60 dark:bg-sky-950/15', 
+        border: 'border-sky-200/90 dark:border-sky-500/30', 
+        badge: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/40' 
+      },
+      B1: { 
+        bg: 'bg-amber-50/60 dark:bg-amber-950/15', 
+        border: 'border-amber-200/90 dark:border-amber-500/30', 
+        badge: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/40' 
+      },
+      B2: { 
+        bg: 'bg-indigo-50/60 dark:bg-indigo-950/15', 
+        border: 'border-indigo-200/90 dark:border-indigo-500/30', 
+        badge: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/40' 
+      },
+      C1: { 
+        bg: 'bg-rose-50/60 dark:bg-rose-950/15', 
+        border: 'border-rose-200/90 dark:border-rose-500/30', 
+        badge: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/40' 
+      }
     };
 
     container.innerHTML = filteredKeys.map(key => {
@@ -269,7 +337,7 @@ class VocabularyApp {
         const unitNumStr = topic.unitNumber ? `Unit ${String(topic.unitNumber).padStart(2, '0')}` : 'Unit';
 
         return `
-          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-200/90 dark:border-slate-700/60 bg-white/95 dark:bg-slate-800/40 hover:bg-white dark:hover:bg-slate-800/80 hover:border-sky-400 dark:hover:border-slate-500 transition flex flex-col md:flex-row md:items-center justify-between gap-4 group shadow-xs hover:shadow-md">
             <!-- Left Info & Badges -->
             <div class="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
               <div class="w-11 h-11 rounded-xl bg-gradient-to-tr ${topic.color} flex items-center justify-center text-white shadow-md shrink-0">
@@ -278,40 +346,40 @@ class VocabularyApp {
 
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2 mb-1.5">
-                  <span class="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black tracking-wider bg-slate-700/90 text-sky-300 border border-slate-600/70">
+                  <span class="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black tracking-wider bg-sky-50 text-sky-700 border border-sky-200 dark:bg-slate-700/90 dark:text-sky-300 dark:border-slate-600/70">
                     ${unitNumStr}
                   </span>
-                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700">
                     ${topic.category || 'Mavzu'}
                   </span>
-                  <span class="text-[11px] font-medium text-slate-400">
-                    <i class="fa-solid fa-list-check text-sky-400 mr-1"></i>${topic.words.length} ta so'z
+                  <span class="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                    <i class="fa-solid fa-list-check text-sky-600 dark:text-sky-400 mr-1"></i>${topic.words.length} ta so'z
                   </span>
                 </div>
 
-                <h4 class="text-base sm:text-lg font-bold text-white group-hover:text-sky-300 transition truncate">${topic.title}</h4>
-                <p class="text-xs text-slate-400 mt-0.5 line-clamp-1">${topic.cambridge_source || "Cambridge English Vocabulary in Use | 3 tadan misol gap va IPA talaffuz"}</p>
+                <h4 class="text-base sm:text-lg font-bold text-slate-800 group-hover:text-sky-600 dark:text-white dark:group-hover:text-sky-300 transition truncate">${topic.title}</h4>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">${topic.cambridge_source || "Cambridge English Vocabulary in Use | 3 tadan misol gap va IPA talaffuz"}</p>
               </div>
             </div>
 
             <!-- Middle Progress -->
-            <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 md:w-44 shrink-0 bg-slate-900/40 sm:bg-transparent p-2.5 sm:p-0 rounded-xl border border-slate-800/60 sm:border-0">
+            <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 md:w-44 shrink-0 bg-slate-50 dark:bg-slate-900/40 sm:bg-transparent p-2.5 sm:p-0 rounded-xl border border-slate-200/80 dark:border-slate-800/60 sm:border-0">
               <div class="flex items-center gap-2 text-xs">
-                <span class="text-slate-400 text-[11px]">O'zlashtirish:</span>
-                <span class="font-bold ${topicLearnedCount === topic.words.length && topic.words.length > 0 ? 'text-emerald-400' : 'text-slate-200'}">${topicLearnedCount} / ${topic.words.length}</span>
+                <span class="text-slate-500 dark:text-slate-400 text-[11px]">O'zlashtirish:</span>
+                <span class="font-bold ${topicLearnedCount === topic.words.length && topic.words.length > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-700 dark:text-slate-200'}">${topicLearnedCount} / ${topic.words.length}</span>
               </div>
-              <div class="w-24 sm:w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+              <div class="w-24 sm:w-full bg-slate-200 dark:bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
                 <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 transition-all duration-300" style="width: ${topicProgressPct}%"></div>
               </div>
             </div>
 
             <!-- Right Actions -->
-            <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-slate-700/40 md:border-t-0">
+            <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-slate-200/80 dark:border-slate-700/40 md:border-t-0">
               <button 
                 onclick="window.openTopic('${key}', '${topic.id}')"
-                class="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-slate-700/90 hover:bg-slate-600 text-white text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
+                class="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-200/80 dark:bg-slate-700/90 dark:hover:bg-slate-600 dark:text-white dark:border-transparent text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-xs"
               >
-                <i class="fa-solid fa-book-open text-sky-400"></i>
+                <i class="fa-solid fa-book-open text-sky-600 dark:text-sky-400"></i>
                 <span>O'rganish</span>
               </button>
 
@@ -328,29 +396,29 @@ class VocabularyApp {
       }).join('');
 
       return `
-        <div class="rounded-3xl border ${style.border} bg-gradient-to-b ${style.header} p-6 sm:p-8 space-y-6 shadow-xl" id="level-block-${key}">
+        <div class="rounded-3xl border ${style.border} ${style.bg} p-6 sm:p-8 space-y-6 shadow-sm transition" id="level-block-${key}">
           <!-- Level Header Info -->
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div class="space-y-1">
               <div class="flex items-center gap-3">
-                <h3 class="text-2xl sm:text-3xl font-black text-white tracking-tight">${lvl.levelName}</h3>
+                <h3 class="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white tracking-tight">${lvl.levelName}</h3>
                 <span class="px-3 py-1 rounded-full text-xs font-bold border ${style.badge}">
                   ${lvl.badge}
                 </span>
-                <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-800 text-sky-300 border border-slate-700">
+                <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-white text-sky-700 border border-sky-200 dark:bg-slate-800 dark:text-sky-300 dark:border-slate-700 shadow-xs">
                   10 ta Unit
                 </span>
               </div>
-              <p class="text-xs sm:text-sm text-slate-300 max-w-2xl">${lvl.description}</p>
+              <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-300 max-w-2xl">${lvl.description}</p>
             </div>
 
-            <div class="flex items-center gap-4 bg-slate-900/80 px-4 py-2.5 rounded-2xl border border-slate-800">
+            <div class="flex items-center gap-4 bg-white/90 dark:bg-slate-900/80 px-4 py-2.5 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-xs">
               <div>
-                <span class="text-[10px] text-slate-400 uppercase tracking-wider block">Daraja progressi</span>
-                <span class="text-sm font-bold text-white">${learnedInLevel} / ${totalWordsInLevel} so'z (${levelProgressPct}%)</span>
+                <span class="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-wider block font-semibold">Daraja progressi</span>
+                <span class="text-sm font-bold text-slate-800 dark:text-white">${learnedInLevel} / ${totalWordsInLevel} so'z (${levelProgressPct}%)</span>
               </div>
-              <div class="w-16 bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
-                <div class="bg-gradient-to-r from-emerald-400 to-teal-400 h-2" style="width: ${levelProgressPct}%"></div>
+              <div class="w-16 bg-slate-200 dark:bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-200 dark:border-slate-700">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-2" style="width: ${levelProgressPct}%"></div>
               </div>
             </div>
           </div>
@@ -386,7 +454,14 @@ class VocabularyApp {
     if (headerTitle) headerTitle.textContent = topic.title;
     if (headerBadge) {
       headerBadge.textContent = level.badge;
-      headerBadge.className = `px-3 py-1 rounded-full text-xs font-bold bg-${level.color}-500/20 text-${level.color}-300 border border-${level.color}-500/30`;
+      const levelColors = {
+        A1: 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30',
+        A2: 'bg-sky-100 text-sky-800 border-sky-300 dark:bg-sky-500/20 dark:text-sky-300 dark:border-sky-500/30',
+        B1: 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30',
+        B2: 'bg-indigo-100 text-indigo-800 border-indigo-300 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30',
+        C1: 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30'
+      };
+      headerBadge.className = `px-3 py-1 rounded-full text-xs font-bold border ${levelColors[levelKey] || levelColors.A1}`;
     }
 
     // Pass to component
@@ -402,11 +477,11 @@ class VocabularyApp {
     const btnFlashcard = document.getElementById('mode-btn-flashcard');
 
     if (mode === 'list') {
-      if (btnList) btnList.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-sky-500 text-white shadow';
-      if (btnFlashcard) btnFlashcard.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5';
+      if (btnList) btnList.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-sky-500 text-white shadow-xs';
+      if (btnFlashcard) btnFlashcard.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5';
     } else {
-      if (btnList) btnList.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition flex items-center gap-1.5';
-      if (btnFlashcard) btnFlashcard.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow';
+      if (btnList) btnList.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition flex items-center gap-1.5';
+      if (btnFlashcard) btnFlashcard.className = 'px-3.5 py-2 rounded-lg text-xs font-semibold transition flex items-center gap-1.5 bg-indigo-600 text-white shadow-xs';
     }
 
     this.wordCardsComp.setViewMode(mode);
@@ -449,27 +524,27 @@ class VocabularyApp {
 
   /* Global Search */
   performSearch(query) {
-    const cleanQuery = query.trim().toLowerCase();
-    if (!cleanQuery) {
+    query = query.trim().toLowerCase();
+    if (!query) {
       this.showView('home');
       return;
     }
 
+    const resultsSummary = document.getElementById('search-query-summary');
     const resultsContainer = document.getElementById('search-results-container');
-    const summaryEl = document.getElementById('search-query-summary');
-    if (summaryEl) summaryEl.textContent = `Qidiruv so'zi: "${query}"`;
+    if (resultsSummary) resultsSummary.textContent = `Qidiruv so'zi: "${query}"`;
 
-    const matches = [];
-    Object.keys(this.vocabData).forEach(lvlKey => {
-      const level = this.vocabData[lvlKey];
+    let matches = [];
+    Object.keys(this.vocabData).forEach(levelKey => {
+      const level = this.vocabData[levelKey];
       level.topics.forEach(topic => {
-        topic.words.forEach(word => {
-          if (
-            word.word.toLowerCase().includes(cleanQuery) ||
-            word.uzbek.toLowerCase().includes(cleanQuery) ||
-            word.definition.toLowerCase().includes(cleanQuery)
-          ) {
-            matches.push({ word, levelKey: lvlKey, topic });
+        topic.words.forEach(w => {
+          const matchWord = w.word.toLowerCase().includes(query);
+          const matchUzbek = w.uzbek.toLowerCase().includes(query);
+          const matchDef = w.definition.toLowerCase().includes(query);
+
+          if (matchWord || matchUzbek || matchDef) {
+            matches.push({ word: w, levelKey, topic });
           }
         });
       });
@@ -477,36 +552,36 @@ class VocabularyApp {
 
     if (matches.length === 0) {
       resultsContainer.innerHTML = `
-        <div class="glass-card rounded-2xl p-10 text-center space-y-3">
-          <i class="fa-solid fa-magnifying-glass text-3xl text-slate-500"></i>
-          <p class="text-base text-slate-300">"${query}" bo'yicha hech qanday so'z topilmadi.</p>
+        <div class="glass-card rounded-2xl p-10 text-center space-y-3 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/60 shadow-xs">
+          <i class="fa-solid fa-magnifying-glass text-3xl text-slate-400"></i>
+          <p class="text-base font-semibold text-slate-700 dark:text-slate-300">"${query}" bo'yicha hech qanday so'z topilmadi.</p>
           <p class="text-xs text-slate-500">Iltimos, boshqa so'z bilan qidirib ko'ring yoki bosh sahifadagi mavzularni ko'zdan kechiring.</p>
         </div>
       `;
     } else {
       resultsContainer.innerHTML = matches.map(({ word, levelKey, topic }) => `
-        <div class="glass-card rounded-2xl p-5 border border-slate-700 bg-slate-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="glass-card rounded-2xl p-5 border border-slate-200/90 dark:border-slate-700 bg-white dark:bg-slate-800/60 flex flex-col md:flex-row md:items-center justify-between gap-4 shadow-xs hover:shadow-sm">
           <div class="space-y-1">
             <div class="flex items-center gap-3">
-              <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-500/20 text-sky-300">${levelKey}</span>
-              <h3 class="text-xl font-bold text-white">${word.word}</h3>
-              <span class="text-xs text-slate-400 font-mono">${word.phonetic}</span>
+              <span class="text-xs font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-700 border border-sky-200 dark:bg-sky-500/20 dark:text-sky-300 dark:border-transparent">${levelKey}</span>
+              <h3 class="text-xl font-bold text-slate-900 dark:text-white">${word.word}</h3>
+              <span class="text-xs text-slate-500 dark:text-slate-400 font-mono">${word.phonetic}</span>
             </div>
-            <p class="text-emerald-300 font-semibold text-sm">${word.uzbek}</p>
-            <p class="text-slate-300 text-xs">${word.definition}</p>
+            <p class="text-emerald-700 dark:text-emerald-300 font-semibold text-sm">${word.uzbek}</p>
+            <p class="text-slate-600 dark:text-slate-300 text-xs">${word.definition}</p>
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
             <button 
               onclick="window.speakWord('${word.word}', this)" 
-              class="w-9 h-9 rounded-xl bg-slate-700 text-slate-200 hover:bg-sky-500 hover:text-white flex items-center justify-center transition"
+              class="w-9 h-9 rounded-xl bg-slate-100 text-slate-700 hover:bg-sky-500 hover:text-white dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-sky-500 transition flex items-center justify-center"
               title="Talaffuzni eshitish"
             >
               <i class="fa-solid fa-volume-high text-xs"></i>
             </button>
             <button 
               onclick="window.openTopic('${levelKey}', '${topic.id}')" 
-              class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold flex items-center gap-1.5 transition"
+              class="px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-600 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
             >
               <span>${topic.title} mavzusiga o'tish</span>
               <i class="fa-solid fa-arrow-right text-[10px]"></i>
@@ -548,6 +623,7 @@ class VocabularyApp {
     window.filterByLevel = (key) => this.filterByLevel(key);
     window.switchWordViewMode = (mode) => this.switchWordViewMode(mode);
     window.toggleSoundEffects = () => this.toggleSound();
+    window.toggleTheme = () => this.toggleTheme();
     
     window.speakWord = (word, btn) => this.wordCardsComp.speak(word, btn);
     window.toggleLearnedWord = (id) => this.toggleLearnedWord(id);

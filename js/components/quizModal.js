@@ -142,28 +142,28 @@ export class QuizModalComponent {
         <!-- Top Bar: Progress & Close -->
         <div class="flex items-center justify-between gap-4">
           <div class="flex items-center gap-2">
-            <span class="px-3 py-1 bg-indigo-500/20 text-indigo-300 font-bold text-xs rounded-lg border border-indigo-500/30 uppercase tracking-wider">
+            <span class="px-3 py-1 bg-indigo-100 text-indigo-800 border border-indigo-200 dark:bg-indigo-500/20 dark:text-indigo-300 dark:border-indigo-500/30 font-bold text-xs rounded-lg uppercase tracking-wider">
               ${this.currentTopic.title} Testi
             </span>
-            <span class="text-xs text-slate-400 font-medium">Savol: <strong>${this.currentIndex + 1}</strong> / ${total}</span>
+            <span class="text-xs text-slate-500 dark:text-slate-400 font-medium">Savol: <strong class="text-slate-900 dark:text-white">${this.currentIndex + 1}</strong> / ${total}</span>
           </div>
 
-          <button onclick="window.closeQuizModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
+          <button onclick="window.closeQuizModal()" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition">
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
 
         <!-- Progress bar -->
-        <div class="w-full bg-slate-700/50 rounded-full h-2 overflow-hidden">
+        <div class="w-full bg-slate-200 dark:bg-slate-700/50 rounded-full h-2 overflow-hidden">
           <div class="bg-gradient-to-r from-indigo-500 to-sky-400 h-2 transition-all duration-300" style="width: ${progressPct}%"></div>
         </div>
 
         <!-- Question Prompt Area -->
-        <div class="bg-slate-900/70 border border-slate-700/80 rounded-2xl p-6 text-center space-y-2">
-          <p class="text-xs font-semibold text-sky-400 uppercase tracking-wider">${q.title}</p>
-          <h2 class="text-2xl md:text-3xl font-extrabold text-white leading-snug">${q.prompt}</h2>
-          ${q.phonetic ? `<p class="text-indigo-400 font-mono text-base">${q.phonetic}</p>` : ''}
-          ${q.subPrompt ? `<p class="text-slate-400 text-xs italic mt-1">${q.subPrompt}</p>` : ''}
+        <div class="bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-700/80 rounded-2xl p-6 text-center space-y-2">
+          <p class="text-xs font-semibold text-sky-600 dark:text-sky-400 uppercase tracking-wider">${q.title}</p>
+          <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white leading-snug">${q.prompt}</h2>
+          ${q.phonetic ? `<p class="text-indigo-600 dark:text-indigo-400 font-mono text-base">${q.phonetic}</p>` : ''}
+          ${q.subPrompt ? `<p class="text-slate-500 dark:text-slate-400 text-xs italic mt-1">${q.subPrompt}</p>` : ''}
         </div>
 
         <!-- 4 Options Grid -->
@@ -171,16 +171,16 @@ export class QuizModalComponent {
           ${q.options.map((opt, optIdx) => `
             <button 
               onclick="window.selectQuizOption(${optIdx}, '${opt.replace(/'/g, "\\'")}')"
-              class="quiz-option-btn p-4 rounded-xl text-left bg-slate-800/80 hover:bg-slate-800 border border-slate-700 hover:border-slate-500 text-slate-200 font-medium flex items-center justify-between group active:scale-[0.99]"
+              class="quiz-option-btn p-4 rounded-xl text-left bg-white hover:bg-slate-50 dark:bg-slate-800/80 dark:hover:bg-slate-800 border border-slate-200 hover:border-sky-400 dark:border-slate-700 dark:hover:border-slate-500 text-slate-800 dark:text-slate-200 font-medium flex items-center justify-between group active:scale-[0.99] shadow-xs"
               id="opt-btn-${optIdx}"
             >
               <div class="flex items-center gap-3">
-                <span class="w-7 h-7 rounded-lg bg-slate-700/80 group-hover:bg-indigo-600/40 text-xs font-bold flex items-center justify-center text-slate-300 shrink-0">
+                <span class="w-7 h-7 rounded-lg bg-slate-100 group-hover:bg-indigo-100 group-hover:text-indigo-700 dark:bg-slate-700/80 dark:group-hover:bg-indigo-600/40 text-xs font-bold flex items-center justify-center text-slate-700 dark:text-slate-300 shrink-0">
                   ${['A', 'B', 'C', 'D'][optIdx]}
                 </span>
                 <span class="text-sm md:text-base leading-snug">${opt}</span>
               </div>
-              <i class="fa-regular fa-circle text-slate-500 group-hover:text-indigo-400 shrink-0" id="opt-icon-${optIdx}"></i>
+              <i class="fa-regular fa-circle text-slate-400 group-hover:text-indigo-500 dark:text-slate-500 dark:group-hover:text-indigo-400 shrink-0" id="opt-icon-${optIdx}"></i>
             </button>
           `).join('')}
         </div>
@@ -191,16 +191,16 @@ export class QuizModalComponent {
         </div>
 
         <!-- Bottom Action Bar -->
-        <div class="flex items-center justify-between pt-2 border-t border-slate-800">
-          <span class="text-xs text-slate-400">
-            To'g'ri javoblar: <strong class="text-emerald-400">${this.score}</strong>
+        <div class="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800">
+          <span class="text-xs text-slate-500 dark:text-slate-400">
+            To'g'ri javoblar: <strong class="text-emerald-600 dark:text-emerald-400">${this.score}</strong>
           </span>
 
           <button 
             id="quiz-next-btn"
             onclick="window.nextQuizQuestion()" 
             disabled
-            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-white font-semibold text-sm flex items-center gap-2 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg shadow-indigo-500/20"
+            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-white font-semibold text-sm flex items-center gap-2 hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-md shadow-indigo-500/20"
           >
             <span>${this.currentIndex >= total - 1 ? 'Natijani ko\'rish' : 'Keyingi savol'}</span>
             <i class="fa-solid fa-arrow-right"></i>
@@ -253,12 +253,12 @@ export class QuizModalComponent {
     // Show feedback box
     const feedbackBox = document.getElementById('quiz-feedback-box');
     if (feedbackBox) {
-      feedbackBox.className = `rounded-xl p-4 border ${isCorrect ? 'bg-emerald-950/40 border-emerald-500/40 text-emerald-200' : 'bg-rose-950/40 border-rose-500/40 text-rose-200'}`;
+      feedbackBox.className = `rounded-xl p-4 border ${isCorrect ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/40 dark:text-emerald-200' : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/40 dark:text-rose-200'}`;
       feedbackBox.innerHTML = `
         <div class="flex items-start gap-3">
-          <i class="fa-solid ${isCorrect ? 'fa-circle-check text-emerald-400' : 'fa-circle-exclamation text-rose-400'} text-xl mt-0.5"></i>
+          <i class="fa-solid ${isCorrect ? 'fa-circle-check text-emerald-600 dark:text-emerald-400' : 'fa-circle-exclamation text-rose-600 dark:text-rose-400'} text-xl mt-0.5"></i>
           <div class="space-y-1">
-            <h4 class="font-bold text-sm text-white">${isCorrect ? 'Barakalla! To\'g\'ri javob!' : 'Afsuski, noto\'g\'ri!'}</h4>
+            <h4 class="font-bold text-sm text-slate-900 dark:text-white">${isCorrect ? 'Barakalla! To\'g\'ri javob!' : 'Afsuski, noto\'g\'ri!'}</h4>
             <p class="text-xs leading-relaxed opacity-90">${q.explanation}</p>
           </div>
         </div>
@@ -300,16 +300,16 @@ export class QuizModalComponent {
     }
 
     let badgeText = "Yaxshi urinish!";
-    let badgeClass = "bg-amber-500/20 text-amber-300 border-amber-500/30";
+    let badgeClass = "bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-500/20 dark:text-amber-300 dark:border-amber-500/30";
     let iconClass = "fa-star text-amber-400";
 
     if (percentage >= 80) {
       badgeText = "A'lo natija! Mukammal o'zlashtirdingiz!";
-      badgeClass = "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
+      badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-500/20 dark:text-emerald-300 dark:border-emerald-500/30";
       iconClass = "fa-trophy text-emerald-400";
     } else if (percentage < 50) {
       badgeText = "Mavzuni yana bir bor takrorlashni tavsiya qilamiz.";
-      badgeClass = "bg-rose-500/20 text-rose-300 border-rose-500/30";
+      badgeClass = "bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-500/20 dark:text-rose-300 dark:border-rose-500/30";
       iconClass = "fa-rotate-right text-rose-400";
     }
 
@@ -323,36 +323,36 @@ export class QuizModalComponent {
           <span class="inline-block px-3 py-1 rounded-full text-xs font-bold border ${badgeClass}">
             ${badgeText}
           </span>
-          <h2 class="text-3xl font-extrabold text-white">Test Yakunlandi!</h2>
-          <p class="text-slate-400 text-sm">${this.currentTopic.title} bo'yicha testingiz natijasi</p>
+          <h2 class="text-3xl font-extrabold text-slate-900 dark:text-white">Test Yakunlandi!</h2>
+          <p class="text-slate-500 dark:text-slate-400 text-sm">${this.currentTopic.title} bo'yicha testingiz natijasi</p>
         </div>
 
         <!-- Score Meter -->
         <div class="grid grid-cols-3 gap-3 max-w-sm mx-auto">
-          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400">To'g'ri</span>
-            <p class="text-xl font-bold text-emerald-400">${this.score}</p>
+          <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400">To'g'ri</span>
+            <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">${this.score}</p>
           </div>
-          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400">Noto'g'ri</span>
-            <p class="text-xl font-bold text-rose-400">${total - this.score}</p>
+          <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Noto'g'ri</span>
+            <p class="text-xl font-bold text-rose-600 dark:text-rose-400">${total - this.score}</p>
           </div>
-          <div class="bg-slate-900/60 p-3 rounded-xl border border-slate-800">
-            <span class="text-xs text-slate-400">Foiz</span>
-            <p class="text-xl font-bold text-sky-400">${percentage}%</p>
+          <div class="bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+            <span class="text-xs text-slate-500 dark:text-slate-400">Foiz</span>
+            <p class="text-xl font-bold text-sky-600 dark:text-sky-400">${percentage}%</p>
           </div>
         </div>
 
         <!-- Answers Review Accordion / Preview -->
-        <div class="text-left bg-slate-900/60 rounded-xl p-4 border border-slate-800 max-h-48 overflow-y-auto space-y-2">
-          <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Savollar tahlili:</h4>
+        <div class="text-left bg-slate-50 dark:bg-slate-900/60 rounded-xl p-4 border border-slate-200 dark:border-slate-800 max-h-48 overflow-y-auto space-y-2">
+          <h4 class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">Savollar tahlili:</h4>
           ${this.userAnswers.map((ans, idx) => `
-            <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-800/60">
+            <div class="flex items-center justify-between text-xs py-1.5 border-b border-slate-200/80 dark:border-slate-800/60">
               <div class="flex items-center gap-2 truncate pr-2">
-                <i class="fa-solid ${ans.isCorrect ? 'fa-check text-emerald-400' : 'fa-xmark text-rose-400'}"></i>
-                <span class="text-slate-300 truncate">${ans.question}</span>
+                <i class="fa-solid ${ans.isCorrect ? 'fa-check text-emerald-600 dark:text-emerald-400' : 'fa-xmark text-rose-600 dark:text-rose-400'}"></i>
+                <span class="text-slate-700 dark:text-slate-300 truncate">${ans.question}</span>
               </div>
-              <span class="${ans.isCorrect ? 'text-emerald-400 font-semibold' : 'text-rose-400 font-semibold'} shrink-0">${ans.correct}</span>
+              <span class="${ans.isCorrect ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-rose-600 dark:text-rose-400 font-semibold'} shrink-0">${ans.correct}</span>
             </div>
           `).join('')}
         </div>
@@ -361,14 +361,14 @@ export class QuizModalComponent {
         <div class="flex flex-wrap items-center justify-center gap-3 pt-2">
           <button 
             onclick="window.restartTopicQuiz()" 
-            class="px-6 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-sm flex items-center gap-2 transition"
+            class="px-6 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-white dark:border-transparent font-semibold text-sm flex items-center gap-2 transition"
           >
             <i class="fa-solid fa-rotate-right"></i> Qayta topshirish
           </button>
           
           <button 
             onclick="window.closeQuizModal()" 
-            class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-white font-semibold text-sm flex items-center gap-2 hover:opacity-90 transition shadow-lg shadow-indigo-500/25"
+            class="px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-500 to-sky-500 text-white font-semibold text-sm flex items-center gap-2 hover:opacity-90 transition shadow-md shadow-indigo-500/25"
           >
             <i class="fa-solid fa-check"></i> Mavzuga qaytish
           </button>
