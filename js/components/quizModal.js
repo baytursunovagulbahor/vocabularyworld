@@ -286,6 +286,10 @@ export class QuizModalComponent {
     const modalContent = this.modal.querySelector('.modal-content-box');
     if (!modalContent) return;
 
+    if (this.options.onSaveQuizResult) {
+      this.options.onSaveQuizResult(this.currentTopic.id, this.score, total);
+    }
+
     // Trigger celebration confetti
     if (percentage >= 70 && typeof confetti === 'function') {
       confetti({

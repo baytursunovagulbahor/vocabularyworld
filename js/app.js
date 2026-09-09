@@ -7,10 +7,12 @@ import { VOCAB_DATA } from './data/vocabData.js';
 import { WordCardsComponent } from './components/wordCards.js';
 import { QuizModalComponent } from './components/quizModal.js';
 import { PlacementTestComponent } from './components/placementTest.js';
+import { supabaseService } from './supabaseClient.js';
 
 class VocabularyApp {
   constructor() {
     this.vocabData = VOCAB_DATA;
+    this.supabase = supabaseService;
     this.currentLevelKey = 'A1';
     this.currentTopic = null;
     this.viewMode = 'list'; // 'list' or 'flashcard'
@@ -31,7 +33,8 @@ class VocabularyApp {
     });
 
     this.quizModalComp = new QuizModalComponent('quiz-modal', {
-      playChime: (isCorrect) => this.playFeedbackSound(isCorrect)
+      playChime: (isCorrect) => this.playFeedbackSound(isCorrect),
+      onSaveQuizResult: (topicId, score, total) => this.supabase.recordQuizResult(topicId, score, total)
     });
 
     this.placementTestComp = new PlacementTestComponent('placement-test-container', {
@@ -140,6 +143,9 @@ class VocabularyApp {
     } else {
       this.learnedWordIds.push(id);
       this.playFeedbackSound(true);
+      if (this.supabase) {
+        this.supabase.recordLearnedWord(id);
+      }
     }
     this.saveLearnedWords();
     this.updateStatsUI();
@@ -159,6 +165,13 @@ class VocabularyApp {
     try {
       localStorage.setItem('vw_placement_result', JSON.stringify(this.placementResult));
     } catch (e) {}
+    if (this.supabase) {
+      this.supabase.syncStudentProfile({
+        current_level: level,
+        placement_score: score,
+        placement_completed_at: new Date().toISOString()
+      });
+    }
     this.updateStatsUI();
   }
 
