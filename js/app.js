@@ -265,49 +265,62 @@ class VocabularyApp {
 
       const topicsHtml = lvl.topics.map(topic => {
         let topicLearnedCount = topic.words.filter(w => this.learnedWordIds.includes(w.id)).length;
+        const topicProgressPct = topic.words.length > 0 ? Math.round((topicLearnedCount / topic.words.length) * 100) : 0;
+        const unitNumStr = topic.unitNumber ? `Unit ${String(topic.unitNumber).padStart(2, '0')}` : 'Unit';
+
         return `
-          <div class="glass-card rounded-2xl p-5 border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/70 transition flex flex-col justify-between group">
-            <div class="space-y-3">
-              <div class="flex items-center justify-between">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr ${topic.color} flex items-center justify-center text-white shadow-md">
-                  <i class="fa-solid ${topic.icon} text-base"></i>
-                </div>
-                <span class="text-[11px] font-bold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
-                  ${topic.words.length} ta so'z
-                </span>
+          <div class="glass-card rounded-2xl p-4 sm:p-5 border border-slate-700/60 bg-slate-800/40 hover:bg-slate-800/80 transition flex flex-col md:flex-row md:items-center justify-between gap-4 group">
+            <!-- Left Info & Badges -->
+            <div class="flex items-start sm:items-center gap-3.5 flex-1 min-w-0">
+              <div class="w-11 h-11 rounded-xl bg-gradient-to-tr ${topic.color} flex items-center justify-center text-white shadow-md shrink-0">
+                <i class="fa-solid ${topic.icon} text-lg"></i>
               </div>
 
-              <div>
-                <h4 class="text-lg font-bold text-white group-hover:text-sky-300 transition">${topic.title}</h4>
-                <p class="text-xs text-slate-400 mt-0.5">3 tadan misol gap va talaffuz</p>
-              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span class="px-2.5 py-0.5 rounded-md text-[11px] font-mono font-black tracking-wider bg-slate-700/90 text-sky-300 border border-slate-600/70">
+                    ${unitNumStr}
+                  </span>
+                  <span class="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-slate-800 text-slate-300 border border-slate-700">
+                    ${topic.category || 'Mavzu'}
+                  </span>
+                  <span class="text-[11px] font-medium text-slate-400">
+                    <i class="fa-solid fa-list-check text-sky-400 mr-1"></i>${topic.words.length} ta so'z
+                  </span>
+                </div>
 
-              <!-- Topic mini progress -->
-              <div class="space-y-1 pt-1">
-                <div class="flex justify-between text-[11px] text-slate-400">
-                  <span>O'zlashtirish:</span>
-                  <span class="font-semibold text-emerald-400">${topicLearnedCount} / ${topic.words.length}</span>
-                </div>
-                <div class="w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
-                  <div class="bg-emerald-500 h-1.5 transition-all duration-300" style="width: ${(topicLearnedCount / topic.words.length) * 100}%"></div>
-                </div>
+                <h4 class="text-base sm:text-lg font-bold text-white group-hover:text-sky-300 transition truncate">${topic.title}</h4>
+                <p class="text-xs text-slate-400 mt-0.5 line-clamp-1">${topic.cambridge_source || "Cambridge English Vocabulary in Use | 3 tadan misol gap va IPA talaffuz"}</p>
               </div>
             </div>
 
-            <!-- Action Buttons -->
-            <div class="grid grid-cols-2 gap-2 mt-5 pt-3 border-t border-slate-700/50">
+            <!-- Middle Progress -->
+            <div class="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center gap-1.5 md:w-44 shrink-0 bg-slate-900/40 sm:bg-transparent p-2.5 sm:p-0 rounded-xl border border-slate-800/60 sm:border-0">
+              <div class="flex items-center gap-2 text-xs">
+                <span class="text-slate-400 text-[11px]">O'zlashtirish:</span>
+                <span class="font-bold ${topicLearnedCount === topic.words.length && topic.words.length > 0 ? 'text-emerald-400' : 'text-slate-200'}">${topicLearnedCount} / ${topic.words.length}</span>
+              </div>
+              <div class="w-24 sm:w-full bg-slate-700/50 rounded-full h-1.5 overflow-hidden">
+                <div class="bg-gradient-to-r from-emerald-500 to-teal-400 h-1.5 transition-all duration-300" style="width: ${topicProgressPct}%"></div>
+              </div>
+            </div>
+
+            <!-- Right Actions -->
+            <div class="flex items-center gap-2 shrink-0 pt-2 sm:pt-0 border-t border-slate-700/40 md:border-t-0">
               <button 
                 onclick="window.openTopic('${key}', '${topic.id}')"
-                class="py-2 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-white text-xs font-semibold flex items-center justify-center gap-1.5 transition"
+                class="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-slate-700/90 hover:bg-slate-600 text-white text-xs font-semibold flex items-center justify-center gap-2 transition active:scale-95 shadow-sm"
               >
-                <i class="fa-solid fa-book-open"></i> O'rganish
+                <i class="fa-solid fa-book-open text-sky-400"></i>
+                <span>O'rganish</span>
               </button>
 
               <button 
                 onclick="window.quickStartTopicQuiz('${key}', '${topic.id}')"
-                class="py-2 px-3 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition shadow-sm"
+                class="flex-1 md:flex-initial py-2.5 px-4 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-600 hover:to-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition shadow-md shadow-sky-500/20 active:scale-95"
               >
-                <i class="fa-solid fa-circle-question"></i> Quiz
+                <i class="fa-solid fa-circle-question"></i>
+                <span>Quiz</span>
               </button>
             </div>
           </div>
@@ -324,6 +337,9 @@ class VocabularyApp {
                 <span class="px-3 py-1 rounded-full text-xs font-bold border ${style.badge}">
                   ${lvl.badge}
                 </span>
+                <span class="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-slate-800 text-sky-300 border border-slate-700">
+                  10 ta Unit
+                </span>
               </div>
               <p class="text-xs sm:text-sm text-slate-300 max-w-2xl">${lvl.description}</p>
             </div>
@@ -339,8 +355,8 @@ class VocabularyApp {
             </div>
           </div>
 
-          <!-- Level's Topics Grid -->
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <!-- Level's Topics Sequential List -->
+          <div class="flex flex-col gap-3">
             ${topicsHtml}
           </div>
         </div>
